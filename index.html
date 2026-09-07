@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEPLOY WEB TO DATABASE</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            background-color: #d8f3dc;
+            color: #081c15;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            background-color: #52b788;
+            border: 4px solid #081c15;
+            box-shadow: 6px 6px 0px #081c15;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            text-transform: uppercase;
+            color: #081c15;
+        }
+
+        .card {
+            background-color: #ffffff;
+            border: 4px solid #081c15;
+            box-shadow: 8px 8px 0px #081c15;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            border-bottom: 4px solid #081c15;
+            padding-bottom: 15px;
+            gap: 10px;
+        }
+
+        .step-item {
+            font-weight: bold;
+            padding: 10px;
+            border: 3px solid #081c15;
+            background-color: #b7e4c7;
+            flex: 1;
+            text-align: center;
+        }
+
+        .step-item.active {
+            background-color: #2d6a4f;
+            color: #ffffff;
+            box-shadow: 4px 4px 0px #081c15;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            border: 3px solid #081c15;
+            box-shadow: 3px 3px 0px #081c15;
+            cursor: pointer;
+            background-color: #74c69d;
+            color: #081c15;
+            transition: all 0.1s ease;
+        }
+
+        .btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0px #081c15;
+        }
+
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px #081c15;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: 3px 3px 0px #081c15 !important;
+        }
+
+        .btn-copy {
+            background-color: #ffe600;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+
+        .btn-secondary {
+            background-color: #ffffff;
+            color: #081c15;
+        }
+
+        .btn-danger {
+            background-color: #ff4d4d;
+            color: #ffffff;
+        }
+
+        .btn-success {
+            background-color: #1b4332;
+            color: #ffffff;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 3px solid #081c15;
+            box-shadow: 4px 4px 0px #081c15;
+            font-size: 1rem;
+            outline: none;
+            background-color: #ffffff;
+        }
+
+        textarea {
+            height: 200px;
+            resize: vertical;
+        }
+
+        input[type="file"] {
+            border: 3px dashed #081c15;
+            padding: 20px;
+            width: 100%;
+            background-color: #b7e4c7;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .step-content {
+            display: none;
+        }
+
+        .step-content.active {
+            display: block;
+        }
+
+        .project-item {
+            border: 3px solid #081c15;
+            box-shadow: 5px 5px 0px #081c15;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .project-info h3 {
+            margin-bottom: 8px;
+        }
+
+        .url-box {
+            background: #f0f0f0;
+            border: 2px solid #081c15;
+            padding: 8px 10px;
+            word-break: break-all;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
+        }
+
+        .url-box a {
+            color: #081c15;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .project-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border: 2px solid #081c15;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .badge-public {
+            background-color: #52b788;
+            color: #081c15;
+        }
+
+        .badge-private {
+            background-color: #ff4d4d;
+            color: #ffffff;
+        }
+
+        .alert-error {
+            background-color: #ff4d4d;
+            color: #ffffff;
+            border: 3px solid #081c15;
+            box-shadow: 4px 4px 0px #081c15;
+            padding: 10px;
+            margin-top: 10px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .inline-terminal {
+            display: none;
+            margin-top: 20px;
+            background: #081c15;
+            border: 3px solid #081c15;
+            box-shadow: 4px 4px 0px #081c15;
+            padding: 12px;
+            color: #52b788;
+            font-size: 0.85rem;
+        }
+
+        .terminal-header {
+            border-bottom: 1px dashed #52b788;
+            padding-bottom: 5px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .terminal-body {
+            height: 160px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .terminal-line {
+            word-break: break-all;
+        }
+
+        #private-view {
+            display: none;
+            text-align: center;
+            padding: 50px 20px;
+            background-color: #ff4d4d;
+            color: #ffffff;
+            border: 4px solid #081c15;
+            box-shadow: 8px 8px 0px #081c15;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="app-container">
+        <header>
+            <h1>deploy web to database</h1>
+        </header>
+
+        <div class="card">
+            <div class="step-indicator">
+                <div class="step-item active" id="ind-1">STEP 1: KONTEN</div>
+                <div class="step-item" id="ind-2">STEP 2: URL SLUG</div>
+                <div class="step-item" id="ind-3">STEP 3: DEPLOY</div>
+            </div>
+
+            <!-- STEP 1 -->
+            <div class="step-content active" id="step-1">
+                <div class="form-group">
+                    <label>PILIH METODE INPUT</label>
+                    <div class="tab-buttons">
+                        <button type="button" class="btn" id="btn-tab-text" onclick="switchInputType('text')">TEMPEL TEKS HTML</button>
+                        <button type="button" class="btn btn-secondary" id="btn-tab-file" onclick="switchInputType('file')">UPLOAD FILE HTML</button>
+                    </div>
+                </div>
+
+                <div id="input-text-container" class="form-group">
+                    <label>KODE HTML</label>
+                    <textarea id="html-text-input" placeholder="<html><body><h1>Hello World</h1></body></html>"></textarea>
+                </div>
+
+                <div id="input-file-container" class="form-group" style="display: none;">
+                    <label>FILE HTML</label>
+                    <input type="file" id="html-file-input" accept=".html">
+                </div>
+
+                <button type="button" class="btn btn-success" onclick="goToStep(2)">SELANJUTNYA</button>
+            </div>
+
+            <!-- STEP 2 -->
+            <div class="step-content" id="step-2">
+                <div class="form-group">
+                    <label>JUDUL PROJECT</label>
+                    <input type="text" id="project-title" placeholder="Project Saya">
+                </div>
+                <div class="form-group">
+                    <label>URL SLUG / CUSTOM PATH</label>
+                    <input type="text" id="project-slug" placeholder="my-awesome-site">
+                    <div class="alert-error" id="slug-error">URL INI TELAH DIGUNAKAN ORANG LAIN</div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="goToStep(1)">KEMBALI</button>
+                    <button type="button" class="btn btn-success" onclick="validateAndGoToStep3()">SELANJUTNYA</button>
+                </div>
+            </div>
+
+            <!-- STEP 3 -->
+            <div class="step-content" id="step-3">
+                <div class="form-group">
+                    <label>KONFIRMASI DEPLOYMENT</label>
+                    <p>PROJECT AKAN DIPUBLIKASIKAN DENGAN SPESIFIKASI DI ATAS.</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn btn-secondary" id="btn-back-3" onclick="goToStep(2)">KEMBALI</button>
+                    <button type="button" class="btn btn-success" onclick="startDeploymentProcess()" id="deploy-btn">KLIK DEPLOY NOW</button>
+                </div>
+
+                <div class="inline-terminal" id="inline-terminal">
+                    <div class="terminal-header">> TERMINAL CONSOLE LOG (15s)</div>
+                    <div class="terminal-body" id="terminal-logs"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DAFTAR PROJECT -->
+        <div class="card">
+            <h2>MANAGEMENT PROJECT (LOCAL STORAGE & DATABASE)</h2>
+            <br>
+            <div id="project-list">
+                <!-- Data via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TAMPILAN PRIVATE WEB -->
+    <div class="container" id="private-view">
+        <h2>WEB INI DI PRIVATE</h2>
+        <p>PEMILIK TELAH MENGUBAH STATUS WEBSITE INI MENJADI PRIVAT DAN TIDAK DAPAT DIBUKA PUBLIC.</p>
+    </div>
+
+    <!-- MODAL EDIT KODE -->
+    <div id="edit-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); padding:20px; z-index:1000;">
+        <div class="card" style="max-width:800px; margin:30px auto; background:#fff;">
+            <h2>EDIT KODE HTML</h2>
+            <input type="hidden" id="edit-id">
+            <div class="form-group" style="margin-top:15px;">
+                <textarea id="edit-html-content" style="height:300px;"></textarea>
+            </div>
+            <button class="btn btn-success" onclick="saveEdit()">SIMPAN PERUBAHAN</button>
+            <button class="btn btn-secondary" onclick="closeEditModal()">BATAL</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://lgotbutoigjorgibqglb.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_Dgb73BhrQlcRgJBWzd5mEw_Q3gq16k8";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentInputType = 'text';
+        let htmlPayload = '';
+
+        window.onload = function() {
+            const pathname = window.location.pathname;
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            let slug = urlParams.get('p');
+
+            if (!slug && pathname !== '/') {
+                slug = pathname.substring(1).replace(/\.(com|html)$/, '');
+            }
+
+            // PERBAIKAN: Abaikan 'index' atau string kosong agar halaman utama platform tidak berubah jadi 404
+            if (slug && slug !== 'index' && slug !== '') {
+                renderDeployedPage(slug);
+            } else {
+                loadLocalProjects();
+            }
+        };
+
+        function switchInputType(type) {
+            currentInputType = type;
+            if(type === 'text') {
+                document.getElementById('input-text-container').style.display = 'block';
+                document.getElementById('input-file-container').style.display = 'none';
+                document.getElementById('btn-tab-text').className = 'btn';
+                document.getElementById('btn-tab-file').className = 'btn btn-secondary';
+            } else {
+                document.getElementById('input-text-container').style.display = 'none';
+                document.getElementById('input-file-container').style.display = 'block';
+                document.getElementById('btn-tab-text').className = 'btn btn-secondary';
+                document.getElementById('btn-tab-file').className = 'btn';
+            }
+        }
+
+        function goToStep(step) {
+            if (step === 2 && currentInputType === 'text') {
+                htmlPayload = document.getElementById('html-text-input').value;
+                if (!htmlPayload.trim()) {
+                    alert('ISIKAN KODE HTML TERLEBIH DAHULU');
+                    return;
+                }
+            } else if (step === 2 && currentInputType === 'file') {
+                const fileInput = document.getElementById('html-file-input');
+                if (!fileInput.files[0]) {
+                    alert('PILIH FILE HTML TERLEBIH DAHULU');
+                    return;
+                }
+            }
+
+            for (let i = 1; i <= 3; i++) {
+                document.getElementById('step-' + i).classList.remove('active');
+                document.getElementById('ind-' + i).classList.remove('active');
+            }
+            document.getElementById('step-' + step).classList.add('active');
+            document.getElementById('ind-' + step).classList.add('active');
+        }
+
+        async function checkSlugExists(slug) {
+            const { data, error } = await supabaseClient
+                .from('projects')
+                .select('id')
+                .eq('slug', slug);
+
+            if (error) {
+                console.error(error);
+                return false;
+            }
+
+            return data && data.length > 0;
+        }
+
+        async function validateAndGoToStep3() {
+            const errorElement = document.getElementById('slug-error');
+            errorElement.style.display = 'none';
+
+            let rawSlug = document.getElementById('project-slug').value.trim().toLowerCase();
+            rawSlug = rawSlug.replace(/\.(com|html)$/, '');
+            let slug = rawSlug.replace(/[^a-z0-9-]/g, '-');
+            
+            if (!slug || slug === 'index') {
+                slug = 'site-' + Date.now();
+            }
+            document.getElementById('project-slug').value = slug;
+
+            const exists = await checkSlugExists(slug);
+            if (exists) {
+                errorElement.innerText = "URL INI TELAH DIGUNAKAN ORANG LAIN";
+                errorElement.style.display = 'block';
+                return;
+            }
+
+            goToStep(3);
+        }
+
+        async function startDeploymentProcess() {
+            const title = document.getElementById('project-title').value.trim() || 'Untitled Project';
+            let slug = document.getElementById('project-slug').value.trim().toLowerCase().replace(/\.(com|html)$/, '').replace(/[^a-z0-9-]/g, '-');
+
+            if (currentInputType === 'file') {
+                const fileInput = document.getElementById('html-file-input');
+                const file = fileInput.files[0];
+                htmlPayload = await file.text();
+            }
+
+            const deployBtn = document.getElementById('deploy-btn');
+            const backBtn = document.getElementById('btn-back-3');
+            deployBtn.disabled = true;
+            backBtn.disabled = true;
+
+            const terminalBox = document.getElementById('inline-terminal');
+            const terminalLogs = document.getElementById('terminal-logs');
+            terminalLogs.innerHTML = '';
+            terminalBox.style.display = 'block';
+
+            function addLog(text) {
+                const line = document.createElement('div');
+                line.className = 'terminal-line';
+                line.innerText = text;
+                terminalLogs.appendChild(line);
+                terminalLogs.scrollTop = terminalLogs.scrollHeight;
+            }
+
+            addLog("$ sedang melakukan deploy");
+
+            setTimeout(() => {
+                addLog("$ memproses");
+            }, 2500);
+
+            setTimeout(() => {
+                addLog("$ mengambil kode html/file");
+            }, 5000);
+
+            setTimeout(() => {
+                addLog("$ mengupload database file");
+            }, 7500);
+
+            let progress = 1;
+            setTimeout(() => {
+                const progressLine = document.createElement('div');
+                progressLine.className = 'terminal-line';
+                terminalLogs.appendChild(progressLine);
+
+                const interval = setInterval(() => {
+                    progress += Math.floor(Math.random() * 5) + 3;
+                    if (progress > 100) progress = 100;
+                    progressLine.innerText = `$ memproses ${progress}%`;
+                    terminalLogs.scrollTop = terminalLogs.scrollHeight;
+
+                    if (progress === 100) {
+                        clearInterval(interval);
+                    }
+                }, 200);
+            }, 8500);
+
+            setTimeout(async () => {
+                const { data, error } = await supabaseClient
+                    .from('projects')
+                    .insert([
+                        { title: title, slug: slug, html_content: htmlPayload, is_private: false }
+                    ])
+                    .select();
+
+                if (error) {
+                    addLog("$ ERROR: " + error.message);
+                    deployBtn.disabled = false;
+                    backBtn.disabled = false;
+                    return;
+                }
+
+                saveToLocalStorage(data[0]);
+
+                setTimeout(() => {
+                    addLog("$ selesai berhsil terdeploy √");
+                    setTimeout(() => {
+                        window.location.href = window.location.origin + '/' + slug + '.com';
+                    }, 1000);
+                }, 1000);
+
+            }, 14000);
+        }
+
+        function saveToLocalStorage(projectData) {
+            let projects = JSON.parse(localStorage.getItem('my_projects') || '[]');
+            projects.push(projectData);
+            localStorage.setItem('my_projects', JSON.stringify(projects));
+        }
+
+        function getLocalStorageProjects() {
+            return JSON.parse(localStorage.getItem('my_projects') || '[]');
+        }
+
+        function updateLocalStorageProjects(projects) {
+            localStorage.setItem('my_projects', JSON.stringify(projects));
+        }
+
+        function copyUrlToClipboard(url, btnElement) {
+            navigator.clipboard.writeText(url).then(() => {
+                const originalText = btnElement.innerText;
+                btnElement.innerText = "BERHASIL DISALIN!";
+                btnElement.style.backgroundColor = "#52b788";
+                setTimeout(() => {
+                    btnElement.innerText = originalText;
+                    btnElement.style.backgroundColor = "#ffe600";
+                }, 2000);
+            }).catch(err => {
+                alert("Gagal menyalin URL: " + err);
+            });
+        }
+
+        function loadLocalProjects() {
+            const listContainer = document.getElementById('project-list');
+            const projects = getLocalStorageProjects();
+
+            if (projects.length === 0) {
+                listContainer.innerHTML = '<p>BELUM ADA PROJECT DI LOCAL STORAGE.</p>';
+                return;
+            }
+
+            listContainer.innerHTML = '';
+            projects.forEach(p => {
+                const fullUrl = window.location.origin + '/' + p.slug + '.com';
+                const badgeClass = p.is_private ? 'badge-private' : 'badge-public';
+                const badgeText = p.is_private ? 'PRIVATE' : 'PUBLIC';
+
+                const item = document.createElement('div');
+                item.className = 'project-item';
+                item.innerHTML = `
+                    <div class="project-info">
+                        <h3>${p.title} <span class="badge ${badgeClass}">${badgeText}</span></h3>
+                        
+                        <div>
+                            <button class="btn btn-copy" onclick="copyUrlToClipboard('${fullUrl}', this)">📋 SALIN URL</button>
+                        </div>
+
+                        <div class="url-box">
+                            <a href="${fullUrl}" target="_blank" title="${fullUrl}">${fullUrl}</a>
+                        </div>
+                    </div>
+                    <div class="project-actions">
+                        <button class="btn btn-secondary" onclick="openEditModal('${p.id}')">EDIT KODE</button>
+                        <button class="btn" onclick="togglePrivate('${p.id}')">${p.is_private ? 'SET PUBLIC' : 'SET PRIVATE'}</button>
+                        <button class="btn btn-danger" onclick="deleteProject('${p.id}')">HAPUS</button>
+                    </div>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        async function renderDeployedPage(slug) {
+            const { data, error } = await supabaseClient
+                .from('projects')
+                .select('*')
+                .eq('slug', slug)
+                .single();
+
+            if (error || !data) {
+                document.body.innerHTML = '<h1 style="text-align:center; padding:50px; color:#081c15;">404 - PROJECT TIDAK DITEMUKAN</h1>';
+                return;
+            }
+
+            if (data.is_private) {
+                document.getElementById('app-container').style.display = 'none';
+                document.getElementById('private-view').style.display = 'block';
+                return;
+            }
+
+            document.open();
+            document.write(data.html_content);
+            document.close();
+        }
+
+        function openEditModal(id) {
+            const projects = getLocalStorageProjects();
+            const project = projects.find(p => p.id === id);
+            if (project) {
+                document.getElementById('edit-id').value = id;
+                document.getElementById('edit-html-content').value = project.html_content;
+                document.getElementById('edit-modal').style.display = 'block';
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+        }
+
+        async function saveEdit() {
+            const id = document.getElementById('edit-id').value;
+            const newContent = document.getElementById('edit-html-content').value;
+
+            const { error } = await supabaseClient
+                .from('projects')
+                .update({ html_content: newContent, updated_at: new Date() })
+                .eq('id', id);
+
+            if (error) {
+                alert('GAGAL UPDATE DATABASE: ' + error.message);
+                return;
+            }
+
+            let projects = getLocalStorageProjects();
+            const index = projects.findIndex(p => p.id === id);
+            if (index !== -1) {
+                projects[index].html_content = newContent;
+                updateLocalStorageProjects(projects);
+            }
+
+            alert('KODE BERHASIL DIUBAH');
+            closeEditModal();
+            loadLocalProjects();
+        }
+
+        async function togglePrivate(id) {
+            let projects = getLocalStorageProjects();
+            const project = projects.find(p => p.id === id);
+            if (!project) return;
+
+            const newStatus = !project.is_private;
+
+            const { error } = await supabaseClient
+                .from('projects')
+                .update({ is_private: newStatus })
+                .eq('id', id);
+
+            if (error) {
+                alert('GAGAL UPDATE STATUS: ' + error.message);
+                return;
+            }
+
+            project.is_private = newStatus;
+            updateLocalStorageProjects(projects);
+            loadLocalProjects();
+        }
+
+        async function deleteProject(id) {
+            if (!confirm('YAKIN INGIN MENGHAPUS PROJECT INI?')) return;
+
+            const { error } = await supabaseClient
+                .from('projects')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                alert('GAGAL HAPUS DARI DATABASE: ' + error.message);
+                return;
+            }
+
+            let projects = getLocalStorageProjects();
+            projects = projects.filter(p => p.id !== id);
+            updateLocalStorageProjects(projects);
+            loadLocalProjects();
+        }
+    </script>
+</body>
+</html>
